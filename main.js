@@ -458,30 +458,37 @@ function generateTrack(equationKey) {
   trackGroup.add(strutLInstanced);
   trackGroup.add(strutRInstanced);
 
-  // Build Bright Green Directional Arrows
-  const arrowPositions = [
-    0, 0, 0.8,      // Tip (pointing forward along local +Z)
-    0.6, 0, -0.6,   // Back Right
-    0, 0, -0.1,     // Inner Center Cutout
-    -0.6, 0, -0.6   // Back Left
-  ];
-  const arrowIndices = [
-    0, 2, 1, 
-    0, 3, 2
-  ];
-  const arrowGeo = new THREE.BufferGeometry();
-  arrowGeo.setAttribute('position', new THREE.Float32BufferAttribute(arrowPositions, 3));
-  arrowGeo.setIndex(arrowIndices);
-  // Compute normals for lighting, though we'll use MeshBasicMaterial so it glows perfectly bright green
-  arrowGeo.computeVertexNormals();
-
-  const arrowMat = new THREE.MeshBasicMaterial({ 
-    color: 0x00ff33, 
-    side: THREE.DoubleSide
-  });
-
+  // Build Traffic Signs (Poles, Boards, and Neon Arrows)
+  const signGroup = new THREE.Group();
   const arrowCount = 120; // Spread arrows generously along track length
-  const arrowInstanced = new THREE.InstancedMesh(arrowGeo, arrowMat, arrowCount);
+  
+  // 1. Poles
+  const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 2.5, 8);
+  poleGeo.translate(0, 1.25, 0); // Base at local y=0
+  const poleMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.8, roughness: 0.3});
+  const poleInstanced = new THREE.InstancedMesh(poleGeo, poleMat, arrowCount);
+
+  // 2. Boards
+  const boardGeo = new THREE.BoxGeometry(1.6, 1.6, 0.1); 
+  const boardMat = new THREE.MeshStandardMaterial({color: 0x111111, metalness: 0.5, roughness: 0.8});
+  const boardInstanced = new THREE.InstancedMesh(boardGeo, boardMat, arrowCount);
+
+  // 3. Arrow Shape to be placed on the Board (pointing UP indicating "Forward")
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0.5);      // top tip
+  shape.lineTo(0.4, 0.0);    // right wing
+  shape.lineTo(0.15, 0.0);   // right inner
+  shape.lineTo(0.15, -0.4);  // right stem base
+  shape.lineTo(-0.15, -0.4); // left stem base
+  shape.lineTo(-0.15, 0.0);  // left inner
+  shape.lineTo(-0.4, 0.0);   // left wing
+  shape.lineTo(0, 0.5);      // top tip
+  
+  const arGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.05, bevelEnabled: false });
+  arGeo.translate(0, 0, -0.025); // Center depth slightly
+  
+  const arMat = new THREE.MeshBasicMaterial({ color: 0x00ff33, side: THREE.DoubleSide });
+  const arInstanced = new THREE.InstancedMesh(arGeo, arMat, arrowCount);
 
   for(let i = 0; i < arrowCount; i++) {
     const t = i / arrowCount;
@@ -492,18 +499,44 @@ function generateTrack(equationKey) {
     const n = currentFrames.normals[frameIdx];
     const b = currentFrames.binormals[frameIdx];
     
-    dummy.position.copy(pt);
-    const mat = new THREE.Matrix4().makeBasis(b, n, tangent);
-    dummy.quaternion.setFromRotationMatrix(mat);
+    // Alternate signs left and right of the track
+    const sideMult = (i % 2 === 0) ? 1 : -1;
+    const sideOffset = b.clone().multiplyScalar(sideMult * 2.8);
     
-    // Hover the arrow slightly above the cross-ties so it doesn't clip
-    dummy.position.sub(n.clone().multiplyScalar(0.1));
+    // Pole Base Position
+    dummy.position.copy(pt).add(sideOffset);
+    dummy.position.sub(n.clone().multiplyScalar(1.0)); // attach below rail line
+    
+    const poleMat4 = new THREE.Matrix4().makeBasis(b, n, tangent);
+    dummy.quaternion.setFromRotationMatrix(poleMat4);
     dummy.updateMatrix();
-    arrowInstanced.setMatrixAt(i, dummy.matrix);
+    poleInstanced.setMatrixAt(i, dummy.matrix);
+    
+    // Board Placement
+    // The top of the pole locally is 2.5 units up along `n`
+    dummy.position.add(n.clone().multiplyScalar(2.5));
+    
+    // Make the board face the oncoming cart (cart travels +tangent, so face to -tangent)
+    const boardMat4 = new THREE.Matrix4().makeBasis(b, n, tangent.clone().negate());
+    dummy.quaternion.setFromRotationMatrix(boardMat4);
+    dummy.updateMatrix();
+    boardInstanced.setMatrixAt(i, dummy.matrix);
+    
+    // Arrow Placement (slightly in front of the board)
+    dummy.position.add(tangent.clone().negate().multiplyScalar(0.06));
+    dummy.updateMatrix();
+    arInstanced.setMatrixAt(i, dummy.matrix);
   }
 
-  arrowInstanced.instanceMatrix.needsUpdate = true;
-  trackGroup.add(arrowInstanced);
+  poleInstanced.instanceMatrix.needsUpdate = true;
+  boardInstanced.instanceMatrix.needsUpdate = true;
+  arInstanced.instanceMatrix.needsUpdate = true;
+  
+  signGroup.add(poleInstanced);
+  signGroup.add(boardInstanced);
+  signGroup.add(arInstanced);
+
+  trackGroup.add(signGroup);
 
   currentTrackMesh = trackGroup;
   scene.add(currentTrackMesh);
