@@ -338,3 +338,94 @@ button {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Telemetry Panel */
+.telemetry-panel {
+  pointer-events: none;
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  padding: 1rem 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 100;
+}
+
+.telemetry-panel.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.telemetry-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.telemetry-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 2px;
+  margin-bottom: 0.2rem;
+}
+
+.telemetry-value-container {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.telemetry-value {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+.telemetry-unit {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Accelerator Button */
+.accel-btn {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  z-index: 100;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #ff4d4d, #c9184a);
+  color: #fff;
+  border: 2px solid #ffb3c6;
+  border-radius: 40px;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(201, 24, 74, 0.6);
+  transition: all 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.accel-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 5px 15px rgba(201, 24, 74, 0.4);
+  background: linear-gradient(135deg, #c9184a, #800f2f);
+}
+
+.accel-btn.hidden {
+  display: none;
+}

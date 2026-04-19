@@ -53,6 +53,23 @@
         <div class="status-text">Riding...</div>
         <div class="progress-bar"><div id="progress-fill"></div></div>
       </div>
+      
+      <div id="telemetry-panel" class="telemetry-panel hidden">
+        <div class="telemetry-row">
+          <span class="telemetry-label">SPEED</span>
+          <div class="telemetry-value-container">
+            <span id="speed-val-display" class="telemetry-value">0</span>
+          </div>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">G-FORCE</span>
+          <div class="telemetry-value-container">
+            <span id="gforce-display" class="telemetry-value">1.00 <span class="telemetry-unit">G</span></span>
+          </div>
+        </div>
+      </div>
+      
+      <button id="accelerator-btn" class="accel-btn hidden">⚡ BOOST</button>
     </div>
 
     <!-- Audio placeholder -->

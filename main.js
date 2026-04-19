@@ -556,15 +556,42 @@ let clock = new THREE.Clock();
 const upVector = new THREE.Vector3(0, 1, 0);
 const axis = new THREE.Vector3();
 
+// Telemetry & Physics State
+let prevVelocity = new THREE.Vector3();
+let prevPos = new THREE.Vector3();
+let smoothedGForce = 1.0;
+let boostMult = 1.0;
+let boostActive = false;
+
+const telemetryPanel = document.getElementById('telemetry-panel');
+const speedValDisplay = document.getElementById('speed-val-display');
+const gforceDisplay = document.getElementById('gforce-display');
+const acceleratorBtn = document.getElementById('accelerator-btn');
+
+acceleratorBtn.addEventListener('mousedown', () => boostActive = true);
+acceleratorBtn.addEventListener('mouseup', () => boostActive = false);
+acceleratorBtn.addEventListener('mouseleave', () => boostActive = false);
+acceleratorBtn.addEventListener('touchstart', (e) => { e.preventDefault(); boostActive = true; });
+acceleratorBtn.addEventListener('touchend', (e) => { e.preventDefault(); boostActive = false; });
+
 function startRide() {
   if (!currentCurve) return;
   isRiding = true;
   rideProgress = 0;
   controls.enabled = false;
   
+  // physics reset
+  boostMult = 1.0;
+  boostActive = false;
+  smoothedGForce = 1.0;
+  prevPos.copy(currentCurve.getPointAt(0));
+  prevVelocity.set(0, 0, 0);
+  
   controlsPanel.classList.add('riding');
   stopBtnFloat.classList.add('visible');
   statusPanel.classList.remove('hidden');
+  telemetryPanel.classList.remove('hidden');
+  acceleratorBtn.classList.remove('hidden');
   camBtn.style.display = 'block';
   camMode = 0;
   camBtn.innerText = `📷 Camera: POV`;
@@ -578,6 +605,9 @@ function stopRide() {
   controlsPanel.classList.remove('riding');
   stopBtnFloat.classList.remove('visible');
   statusPanel.classList.add('hidden');
+  telemetryPanel.classList.add('hidden');
+  acceleratorBtn.classList.add('hidden');
+  boostActive = false;
   camBtn.style.display = 'none';
   coasterCartGroup.visible = false;
   
@@ -632,12 +662,23 @@ function animate() {
   stars.rotation.y = time * 0.05;
 
   if (isRiding && currentCurve) {
-    // Advance progress
-    const speedMult = parseFloat(speedRange.value);
-    rideProgress += RIDE_SPEED * speedMult * delta * 60; // adjust for frame rate
+    // Accelerator physics
+    if (boostActive) {
+      boostMult = Math.min(boostMult + delta * 2.0, 3.0);
+    } else {
+      boostMult = Math.max(boostMult - delta * 1.5, 1.0);
+    }
+
+    const baseSpeedMult = parseFloat(speedRange.value);
+    const speedMult = baseSpeedMult * boostMult;
+    
+    const progressDelta = RIDE_SPEED * speedMult * delta * 60;
+    rideProgress += progressDelta; 
+
     if (rideProgress >= 1) {
       if (currentCurve.closed) {
         rideProgress -= 1;
+        prevPos.copy(currentCurve.getPointAt(rideProgress));
       } else {
         stopRide();
       }
@@ -646,6 +687,41 @@ function animate() {
     if (isRiding) {
       // Calculate continuous smooth frames explicitly tracking the math curve
       const pos = currentCurve.getPointAt(rideProgress);
+
+      // --- Telemetry Calculation ---
+      if (delta > 0.001) { // avoid divide by zero on frame stutter
+        const trackLength = currentCurve.getLength();
+        // Scale: 1 Three.js unit = 2.0 meters for realistic human coaster speed & G-Forces
+        const PHYSICAL_SCALE = 2.0;
+        const realDistanceTravelled = progressDelta * trackLength * PHYSICAL_SCALE; 
+        const speed_m_s = realDistanceTravelled / delta;
+        const kmh = speed_m_s * 3.6;
+        const mph = speed_m_s * 2.23694;
+        
+        speedValDisplay.innerHTML = `${Math.round(kmh)} <span class="telemetry-unit">km/h</span> | ${Math.round(mph)} <span class="telemetry-unit">mph</span>`;
+        
+        // G-Force Vector physics
+        const velVec = pos.clone().sub(prevPos).divideScalar(delta);
+        const accelVec = velVec.clone().sub(prevVelocity).divideScalar(delta);
+        
+        // Add Natural Resting Gravity (1G opposing normal ground)
+        if (velVec.lengthSq() > 0.000001) {
+          // Convert Unit/sec^2 to Meters/sec^2
+          accelVec.multiplyScalar(PHYSICAL_SCALE); 
+          accelVec.y += 9.81; // add gravity
+          
+          let rawG = accelVec.length() / 9.81;
+          if (rawG > 20) rawG = smoothedGForce; // Filter instant teleport wraparounds
+          
+          // Exponential moving average for smooth UI
+          smoothedGForce += (rawG - smoothedGForce) * Math.min(delta * 5.0, 1.0);
+        }
+        gforceDisplay.innerHTML = `${smoothedGForce.toFixed(2)} <span class="telemetry-unit">G</span>`;
+        
+        prevPos.copy(pos);
+        prevVelocity.copy(velVec);
+      }
+      // Calculate continuous smooth frames explicitly tracking the math curve
       const tangent = currentCurve.getTangentAt(rideProgress).normalize();
       
       const exactU = rideProgress * pointsCount;
