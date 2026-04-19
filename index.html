@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math Coaster 3D</title>
+    <!-- Use a premium font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- 3D Canvas Container -->
+    <div id="app"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-container">
+      <header>
+        <h1>Math Coaster 3D</h1>
+        <p>Experience procedural geometry</p>
+      </header>
+
+      <div class="controls-panel">
+        <label for="equation-select">Select Track Equation:</label>
+        <select id="equation-select">
+          <option value="lissajous">Infinity Loop (Lissajous)</option>
+          <option value="spiral">Tornado Spiral</option>
+          <option value="sine">Sine Wave Run</option>
+          <option value="trefoil">Trefoil Knot</option>
+          <option value="helix">Double Helix Track</option>
+          <option value="figure8">Figure 8 Loop</option>
+          <option value="chaotic">Chaotic Roller</option>
+        </select>
+
+        <div class="control-group">
+          <label for="speed-range">Ride Speed: <span id="speed-val">1x</span></label>
+          <input type="range" id="speed-range" min="0.1" max="3" step="0.1" value="1">
+        </div>
+        
+        <div class="control-group">
+          <label for="color-picker">Track Neon Color:</label>
+          <div class="color-wrapper">
+            <input type="color" id="color-picker" value="#5a189a">
+          </div>
+        </div>
+        
+        <div class="actions">
+          <button id="ride-btn" class="primary-btn">Ride POV</button>
+          <button id="stop-btn" class="secondary-btn" style="display: none;">Stop Ride</button>
+        </div>
+      </div>
+      
+      <div id="status-panel" class="status-panel hidden">
+        <div class="status-text">Riding...</div>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Audio placeholder -->
+    <audio id="coaster-audio" loop>
+      <source src="https://assets.mixkit.co/active_storage/sfx/2281/2281-preview.mp3" type="audio/mpeg">
+    </audio>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
